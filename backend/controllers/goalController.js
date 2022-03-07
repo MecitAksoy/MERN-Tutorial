@@ -1,10 +1,12 @@
 import asyncHandler from "express-async-handler"
+import Goal from "../models/goalModel.js"
 
 //@desc Get goals
 //@route GET /api/v1/goals
 //@access Private
 const getGoals = asyncHandler(async (req, res) => {
-    res.status(200).json({success: true, message: 'Get goals'})
+    const goals = await Goal.find()
+    res.status(200).json({success: true, goals: goals})
 })
 
 //@desc Post goal
@@ -16,21 +18,48 @@ const postGoal = asyncHandler(async (req, res) => {
         res.status(400)
         throw new Error(`Please add text field`)
     }
-    res.status(200).json({success: true, message: 'Post goal'})
+
+    const goal = await Goal.create({
+        text: req.body.text
+    })
+    res.status(200).json({success: true, Goal: goal})
 })
 
 //@desc Update goal
 //@route PUT /api/v1/goals/:id
 //@access Private
 const putGoal = asyncHandler(async (req, res) => {
-    res.status(200).json({success: true, message: `Put goal ${req.params.id}`})
+    const goal = await Goal.findById(req.params.id)
+
+    if(!goal){
+        res.status(400)
+        throw new Error("Goal not found");
+    }
+
+    const updateGoal = await Goal.findByIdAndUpdate(req.params.id, req.body, {new: true})
+
+    res.status(200).json({success: true, Goal: updateGoal})
 })
 
 //@desc Delete goal
 //@route DELETE /api/v1/goals/:id
 //@access Private
 const deleteGoal = asyncHandler(async (req, res) => {
-    res.status(200).json({success: true, message: `Delete goal ${req.params.id}`})
+    // const goal = await Goal.findById(req.params.id)
+    // if(!goal){
+    //     res.status(400)
+    //     throw new console.error("Goal not found");
+    // }
+    Goal.findByIdAndDelete(req.params.id, (err,docs) =>  {
+        if (err) {
+            res.status(400)
+            throw new Error("Goal not found");
+        } else {
+            res.status(200).json({success: true, message: `Goal ${req.params.id} deleted`})
+        }
+    })
+    //await goal.remove()
+    //res.status(200).json({success: true, message: `Goal ${goal._id} deleted`})
 })
 
 export {
