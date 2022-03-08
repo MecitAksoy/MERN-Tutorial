@@ -1,11 +1,14 @@
 import asyncHandler from "express-async-handler"
 import Goal from "../models/goalModel.js"
+import userModel from "../models/userModel.js"
+import User from "../models/userModel.js"
+
 
 //@desc Get goals
 //@route GET /api/v1/goals
 //@access Private
 const getGoals = asyncHandler(async (req, res) => {
-    const goals = await Goal.find()
+    const goals = await Goal.find({user: req.user.id})
     res.status(200).json({success: true, goals: goals})
 })
 
@@ -13,14 +16,14 @@ const getGoals = asyncHandler(async (req, res) => {
 //@route POST /api/v1/goals
 //@access Private
 const postGoal = asyncHandler(async (req, res) => {
-    console.log(req.body)
     if(!req.body.text) {
         res.status(400)
         throw new Error(`Please add text field`)
     }
 
     const goal = await Goal.create({
-        text: req.body.text
+        text: req.body.text,
+        user: req.user.id,
     })
     res.status(200).json({success: true, Goal: goal})
 })
@@ -35,6 +38,15 @@ const putGoal = asyncHandler(async (req, res) => {
         res.status(400)
         throw new Error("Goal not found");
     }
+    const user = await User.findById(req.user.id)
+    if(!user) {
+        res.status(401)
+        throw new Error("User not found")
+    }
+    if(goal.user.toString() !== user.id) {
+        res.status(400)
+        throw new Error("Not users goal")
+    }
 
     const updateGoal = await Goal.findByIdAndUpdate(req.params.id, req.body, {new: true})
 
@@ -45,21 +57,33 @@ const putGoal = asyncHandler(async (req, res) => {
 //@route DELETE /api/v1/goals/:id
 //@access Private
 const deleteGoal = asyncHandler(async (req, res) => {
-    // const goal = await Goal.findById(req.params.id)
-    // if(!goal){
-    //     res.status(400)
-    //     throw new console.error("Goal not found");
-    // }
-    Goal.findByIdAndDelete(req.params.id, (err,docs) =>  {
-        if (err) {
-            res.status(400)
-            throw new Error("Goal not found");
-        } else {
-            res.status(200).json({success: true, message: `Goal ${req.params.id} deleted`})
-        }
-    })
-    //await goal.remove()
-    //res.status(200).json({success: true, message: `Goal ${goal._id} deleted`})
+    const goal = await Goal.findById(req.params.id)
+    
+    if(!goal){
+        res.status(400)
+        throw new console.error("Goal not found");
+    }
+    const user = await User.findById(req.user.id)
+    if(!user) {
+        res.status(401)
+        throw new Error("User not found")
+    }
+    if(goal.user.toString() !== user.id) {
+        res.status(400)
+        throw new Error("Not users goal")
+    }
+
+    await goal.remove()
+    res.status(200).json({success: true, message: `Goal ${goal._id} deleted`})
+    // Goal.findByIdAndDelete(req.params.id, (err,docs) =>  {
+    //     if (err) {
+    //         res.status(400)
+    //         throw new Error("Goal not found");
+    //     } else {
+    //         res.status(200).json({success: true, message: `Goal ${req.params.id} deleted`})
+    //     }
+    // })
+    
 })
 
 export {
