@@ -5,7 +5,7 @@ import jwt from "jsonwebtoken"
 
 //Generate Token
 const generateToken = (userId) => {
-    return jwt.sign({userId}, process.env.JWT_SECRET, {expiresIn: '30d'})
+    return jwt.sign({userId}, process.env.JWT_SECRET, {expiresIn: '2m'})
 }
 
 //@desc Authenticate user
@@ -26,10 +26,13 @@ const loginUser = asyncHandler(async (req, res) => {
         throw new Error('Invalid credentials')
     }
     if(await bcrypt.compare(password, user.password)) {
-        user = user.toObject()
-        user.token = generateToken(user._id)
-        delete user.password
-        res.status(200).json({success: true, User: user})
+        res.json({
+            _id: user.id,
+            firstname: user.firstname,
+            lastname: user.lastname,
+            email: user.email,
+            token: generateToken(user._id),
+          })
     } else {
         res.status(400)
         throw new Error('Invalid credentials')
@@ -63,9 +66,13 @@ const postUser = asyncHandler(async (req, res) => {
         password: hashedPassword
     })
     if(user) {
-        user = user.toObject()
-        user.token = generateToken(user._id)
-        res.status(201).json({success: true, User: user})
+        res.status(201).json({
+            _id: user.id,
+            firstname: user.firstname,
+            lastname: user.lastname,
+            email: user.email,
+            token: generateToken(user._id),
+          })
     } else {
         res.status(400)
         throw new Error("invalid user data")
@@ -76,14 +83,7 @@ const postUser = asyncHandler(async (req, res) => {
 //@route POST /api/v1/users/me
 //@access Private
 const getCurrentUser = asyncHandler(async (req, res) => {
-    const {_id, firstname, lastname, email} = await User.findById(req.user.id)
-    const loggedInUser = {
-        _id,
-        firstname,
-        lastname,
-        email
-    }
-    res.status(200).json({success: true, user: loggedInUser})
+    res.status(200).json(req.user)
 })
 
 export {
